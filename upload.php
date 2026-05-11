@@ -146,15 +146,20 @@ if ($httpCode >= 200 && $httpCode < 300) {
         $dbHttpCode = curl_getinfo($chDb, CURLINFO_HTTP_CODE);
         curl_close($chDb);
     } else {
-        $jsonPayloadStr = escapeshellarg($dbData);
+        // Usa um arquivo temporário para evitar problemas de escape de aspas no JSON no Windows CMD
+        $tmpJson = tempnam(sys_get_temp_dir(), 'supa_');
+        file_put_contents($tmpJson, $dbData);
+        
         $cmdDb = sprintf(
-            'curl.exe -s -w "\n%%{http_code}" -X POST "%s" -H "Authorization: Bearer %s" -H "apikey: %s" -H "Content-Type: application/json" -H "Prefer: return=representation" -d %s -k',
+            'curl.exe -s -w "\n%%{http_code}" -X POST "%s" -H "Authorization: Bearer %s" -H "apikey: %s" -H "Content-Type: application/json" -H "Prefer: return=representation" --data-binary "@%s" -k',
             $dbEndpoint,
             $SUPABASE_API_KEY,
             $SUPABASE_API_KEY,
-            str_replace("'", "\"", escapeshellarg($dbData))
+            str_replace('\\', '/', $tmpJson)
         );
         $outputDb = shell_exec($cmdDb);
+        @unlink($tmpJson);
+        
         if ($outputDb === null) {
             $dbHttpCode = 500;
         } else {
