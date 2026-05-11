@@ -10,7 +10,7 @@ header('Content-Type: application/json; charset=utf-8');
 // CONFIGURAÇÕES DO SUPABASE - PREENCHA AQUI!
 // ==========================================
 $SUPABASE_URL = "https://mvxvctiofkjjwwkgbdwa.supabase.co"; // URL extraída da anon key
-$SUPABASE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12eHZjdGlvZmtqand3a2diZHdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NjAyNTgsImV4cCI6MjA5NDAzNjI1OH0.CzOQMFgS3-PFo9TiuS1syoVULbUSJ_OV-G-zkkAD6XI"; // Anon Key
+$SUPABASE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im12eHZjdGlvZmtqand3a2diZHdhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODQ2MDI1OCwiZXhwIjoyMDk0MDM2MjU4fQ.imqwg3Ilvc7JPrA2m_z_8IeUWDDLGqwzPqOBZeYCQ84"; // Service Role Key
 $BUCKET_NAME = "instagram-posts";
 // ==========================================
 
