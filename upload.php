@@ -73,32 +73,43 @@ if (empty($extension)) {
 $fileName = uniqid(time() . '_') . '.' . strtolower($extension);
 
 // Prepara para enviar ao Supabase via cURL (Storage API REST) - Padrão para Hospedagem
-$fileContent = file_get_contents($file['tmp_name']);
-
 $endpoint = rtrim($SUPABASE_URL, '/') . "/storage/v1/object/{$BUCKET_NAME}/{$fileName}";
 
-$ch = curl_init();
-
-curl_setopt($ch, CURLOPT_URL, $endpoint);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-curl_setopt($ch, CURLOPT_POSTFIELDS, $fileContent);
-
-$headers = [
-    "Authorization: Bearer {$SUPABASE_API_KEY}",
-    "apikey: {$SUPABASE_API_KEY}",
-    "Content-Type: {$mimeType}"
-];
-
-curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-// Se tiver problemas com SSL na hospedagem (raro), descomente a linha abaixo
-// curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
-
-$response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$curlError = curl_error($ch);
-
-curl_close($ch);
+if (function_exists('curl_init')) {
+    $fileContent = file_get_contents($file['tmp_name']);
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $endpoint);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $fileContent);
+    $headers = [
+        "Authorization: Bearer {$SUPABASE_API_KEY}",
+        "apikey: {$SUPABASE_API_KEY}",
+        "Content-Type: {$mimeType}"
+    ];
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+} else {
+    // Fallback local via shell
+    $filePathStr = escapeshellarg(str_replace('\\', '/', $file['tmp_name']));
+    $cmd = sprintf(
+        'curl.exe -s -w "\n%%{http_code}" -X POST "%s" -H "Authorization: Bearer %s" -H "apikey: %s" -H "Content-Type: %s" --data-binary "@%s" -k',
+        $endpoint,
+        $SUPABASE_API_KEY,
+        $SUPABASE_API_KEY,
+        $mimeType,
+        str_replace("'", "", $filePathStr)
+    );
+    $output = shell_exec($cmd);
+    if ($output === null) returnError("Erro: shell_exec falhou.");
+    $lines = explode("\n", trim($output));
+    $httpCode = (int)array_pop($lines);
+    $response = implode("\n", $lines);
+    $curlError = null;
+}
 
 if ($curlError) {
     returnError("Erro de conexão com Supabase (cURL): " . $curlError);
@@ -115,31 +126,42 @@ if ($httpCode >= 200 && $httpCode < 300) {
     // SALVAR METADADOS NO BANCO DE DADOS (Tabela 'images')
     // ==========================================
     $description = isset($_POST['description']) ? trim($_POST['description']) : '';
-    
     $dbEndpoint = rtrim($SUPABASE_URL, '/') . "/rest/v1/images";
+    $dbData = json_encode(['url' => $publicUrl, 'description' => $description]);
     
-    $dbData = json_encode([
-        'url' => $publicUrl,
-        'description' => $description
-    ]);
-    
-    $chDb = curl_init();
-    curl_setopt($chDb, CURLOPT_URL, $dbEndpoint);
-    curl_setopt($chDb, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($chDb, CURLOPT_CUSTOMREQUEST, "POST");
-    curl_setopt($chDb, CURLOPT_POSTFIELDS, $dbData);
-    
-    $dbHeaders = [
-        "Authorization: Bearer {$SUPABASE_API_KEY}",
-        "apikey: {$SUPABASE_API_KEY}",
-        "Content-Type: application/json",
-        "Prefer: return=representation" // Para retornar o objeto inserido se necessário
-    ];
-    
-    curl_setopt($chDb, CURLOPT_HTTPHEADER, $dbHeaders);
-    $dbResponse = curl_exec($chDb);
-    $dbHttpCode = curl_getinfo($chDb, CURLINFO_HTTP_CODE);
-    curl_close($chDb);
+    if (function_exists('curl_init')) {
+        $chDb = curl_init();
+        curl_setopt($chDb, CURLOPT_URL, $dbEndpoint);
+        curl_setopt($chDb, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($chDb, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($chDb, CURLOPT_POSTFIELDS, $dbData);
+        $dbHeaders = [
+            "Authorization: Bearer {$SUPABASE_API_KEY}",
+            "apikey: {$SUPABASE_API_KEY}",
+            "Content-Type: application/json",
+            "Prefer: return=representation"
+        ];
+        curl_setopt($chDb, CURLOPT_HTTPHEADER, $dbHeaders);
+        $dbResponse = curl_exec($chDb);
+        $dbHttpCode = curl_getinfo($chDb, CURLINFO_HTTP_CODE);
+        curl_close($chDb);
+    } else {
+        $jsonPayloadStr = escapeshellarg($dbData);
+        $cmdDb = sprintf(
+            'curl.exe -s -w "\n%%{http_code}" -X POST "%s" -H "Authorization: Bearer %s" -H "apikey: %s" -H "Content-Type: application/json" -H "Prefer: return=representation" -d %s -k',
+            $dbEndpoint,
+            $SUPABASE_API_KEY,
+            $SUPABASE_API_KEY,
+            str_replace("'", "\"", escapeshellarg($dbData))
+        );
+        $outputDb = shell_exec($cmdDb);
+        if ($outputDb === null) {
+            $dbHttpCode = 500;
+        } else {
+            $linesDb = explode("\n", trim($outputDb));
+            $dbHttpCode = (int)array_pop($linesDb);
+        }
+    }
     
     if ($dbHttpCode < 200 || $dbHttpCode >= 300) {
         // Se falhar o banco, ainda retornamos a URL mas avisamos do erro no DB.
