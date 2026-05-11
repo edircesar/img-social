@@ -18,91 +18,106 @@
     </div>
 
     <main class="container">
-        <header class="header">
-            <div class="icon-container">
-                <i class="ph ph-cloud-arrow-up"></i>
-            </div>
-            <h1>Image Upload</h1>
-            <p>Envie suas imagens para o Supabase Storage</p>
-        </header>
+        <!-- Navegação de Abas -->
+        <nav class="tabs-nav">
+            <button class="tab-btn active" data-tab="upload-tab">
+                <i class="ph ph-upload-simple"></i> Enviar
+            </button>
+            <button class="tab-btn" data-tab="gallery-tab">
+                <i class="ph ph-images"></i> Galeria
+            </button>
+        </nav>
 
-        <form id="uploadForm" class="upload-form">
-            
-            <div class="file-upload-wrapper" id="dropZone">
-                <input type="file" id="imageInput" name="image" accept=".jpg, .jpeg, .png, .webp" required>
-                <div class="upload-placeholder" id="uploadPlaceholder">
-                    <i class="ph ph-image"></i>
-                    <p><strong>Clique para selecionar</strong> ou arraste uma imagem</p>
-                    <span>JPG, PNG ou WEBP (Max. 5MB)</span>
+        <!-- ABA DE UPLOAD -->
+        <section id="upload-tab" class="tab-content active">
+            <header class="header">
+                <div class="icon-container">
+                    <i class="ph ph-cloud-arrow-up"></i>
                 </div>
-                <div class="image-preview hidden" id="imagePreviewContainer">
-                    <img id="imagePreview" src="" alt="Preview">
-                    <button type="button" class="btn-remove" id="btnRemoveFile" title="Remover imagem">
-                        <i class="ph ph-x"></i>
+                <h1>Image Upload</h1>
+                <p>Envie suas imagens para o Supabase</p>
+            </header>
+
+            <form id="uploadForm" class="upload-form">
+                
+                <div class="file-upload-wrapper" id="dropZone">
+                    <input type="file" id="imageInput" name="image" accept=".jpg, .jpeg, .png, .webp" required>
+                    <div class="upload-placeholder" id="uploadPlaceholder">
+                        <i class="ph ph-image"></i>
+                        <p><strong>Clique para selecionar</strong> ou arraste uma imagem</p>
+                        <span>JPG, PNG ou WEBP (Max. 5MB)</span>
+                    </div>
+                    <div class="image-preview hidden" id="imagePreviewContainer">
+                        <img id="imagePreview" src="" alt="Preview">
+                        <button type="button" class="btn-remove" id="btnRemoveFile" title="Remover imagem">
+                            <i class="ph ph-x"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="description">Descrição da Imagem (Opcional)</label>
+                    <input type="text" id="description" name="description" placeholder="Ex: Foto de perfil, Post do Instagram...">
+                </div>
+
+                <button type="submit" class="btn-submit" id="btnSubmit">
+                    <i class="ph ph-upload-simple"></i>
+                    Fazer Upload
+                </button>
+            </form>
+
+            <!-- Área de Loading / Progresso -->
+            <div class="progress-container hidden" id="progressContainer">
+                <div class="loader">
+                    <i class="ph ph-spinner-gap spin"></i>
+                    <span id="progressText">Enviando...</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <!-- Área de Resultado (Logo após o upload) -->
+            <div class="result-container hidden" id="resultContainer">
+                <div class="result-card">
+                    <div class="success-header">
+                        <div class="success-icon">
+                            <i class="ph ph-check-circle"></i>
+                        </div>
+                        <h2>Upload Concluído!</h2>
+                    </div>
+                    
+                    <button type="button" class="btn-new-upload" id="btnNewUpload">
+                        Enviar nova imagem
+                    </button>
+                    <button type="button" class="btn-submit" id="btnViewGallery">
+                        Ver na Galeria
                     </button>
                 </div>
             </div>
+        </section>
 
-            <div class="input-group">
-                <label for="description">Descrição da Imagem (Opcional)</label>
-                <input type="text" id="description" name="description" placeholder="Ex: Foto de perfil, Post do Instagram...">
-            </div>
+        <!-- ABA DE GALERIA -->
+        <section id="gallery-tab" class="tab-content hidden">
+            <header class="header">
+                <h1>Sua Galeria</h1>
+                <p>Imagens enviadas recentemente</p>
+            </header>
 
-            <button type="submit" class="btn-submit" id="btnSubmit">
-                <i class="ph ph-upload-simple"></i>
-                Fazer Upload
-            </button>
-        </form>
-
-        <!-- Área de Loading / Progresso -->
-        <div class="progress-container hidden" id="progressContainer">
-            <div class="loader">
+            <div id="gallery-loader" class="loader hidden">
                 <i class="ph ph-spinner-gap spin"></i>
-                <span id="progressText">Enviando...</span>
+                <span>Carregando galeria...</span>
             </div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
+
+            <div id="gallery-grid" class="gallery-grid">
+                <!-- Cards injetados via JS -->
             </div>
-        </div>
-
-        <!-- Área de Resultado -->
-        <div class="result-container hidden" id="resultContainer">
-            <div class="result-card">
-                <div class="success-header">
-                    <div class="success-icon">
-                        <i class="ph ph-check-circle"></i>
-                    </div>
-                    <h2>Upload Concluído!</h2>
-                </div>
-                
-                <div class="result-content">
-                    <div class="result-image">
-                        <img id="resultImage" src="" alt="Imagem enviada">
-                    </div>
-                    
-                    <div class="result-details">
-                        <div class="detail-group" id="descGroup">
-                            <label>Descrição:</label>
-                            <p id="resultDesc"></p>
-                        </div>
-
-                        <div class="detail-group">
-                            <label>URL Pública:</label>
-                            <div class="url-box">
-                                <input type="text" id="resultUrl" readonly>
-                                <button type="button" class="btn-copy" id="btnCopy" title="Copiar URL">
-                                    <i class="ph ph-copy"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <button type="button" class="btn-new-upload" id="btnNewUpload">
-                    Enviar nova imagem
-                </button>
+            
+            <div id="empty-state" class="empty-state hidden">
+                <i class="ph ph-images"></i>
+                <p>Nenhuma imagem na galeria ainda.</p>
             </div>
-        </div>
+        </section>
 
         <!-- Toast Notifications -->
         <div id="toast" class="toast"></div>

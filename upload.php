@@ -111,11 +111,49 @@ if ($httpCode >= 200 && $httpCode < 300) {
     // Sucesso no upload. Monta a URL pública.
     $publicUrl = rtrim($SUPABASE_URL, '/') . "/storage/v1/object/public/{$BUCKET_NAME}/{$fileName}";
     
+    // ==========================================
+    // SALVAR METADADOS NO BANCO DE DADOS (Tabela 'images')
+    // ==========================================
+    $description = isset($_POST['description']) ? trim($_POST['description']) : '';
+    
+    $dbEndpoint = rtrim($SUPABASE_URL, '/') . "/rest/v1/images";
+    
+    $dbData = json_encode([
+        'url' => $publicUrl,
+        'description' => $description
+    ]);
+    
+    $chDb = curl_init();
+    curl_setopt($chDb, CURLOPT_URL, $dbEndpoint);
+    curl_setopt($chDb, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($chDb, CURLOPT_CUSTOMREQUEST, "POST");
+    curl_setopt($chDb, CURLOPT_POSTFIELDS, $dbData);
+    
+    $dbHeaders = [
+        "Authorization: Bearer {$SUPABASE_API_KEY}",
+        "apikey: {$SUPABASE_API_KEY}",
+        "Content-Type: application/json",
+        "Prefer: return=representation" // Para retornar o objeto inserido se necessário
+    ];
+    
+    curl_setopt($chDb, CURLOPT_HTTPHEADER, $dbHeaders);
+    $dbResponse = curl_exec($chDb);
+    $dbHttpCode = curl_getinfo($chDb, CURLINFO_HTTP_CODE);
+    curl_close($chDb);
+    
+    if ($dbHttpCode < 200 || $dbHttpCode >= 300) {
+        // Se falhar o banco, ainda retornamos a URL mas avisamos do erro no DB.
+        $dbErrorMsg = "Aviso: Imagem salva no Storage, mas falhou ao salvar no BD.";
+    } else {
+        $dbErrorMsg = null;
+    }
+    
     echo json_encode([
         'status' => 'success',
-        'message' => 'Upload realizado com sucesso!',
+        'message' => 'Upload e registro realizados com sucesso!',
         'url' => $publicUrl,
-        'fileName' => $fileName
+        'fileName' => $fileName,
+        'db_warning' => $dbErrorMsg
     ]);
 } else {
     // Erro do Supabase
